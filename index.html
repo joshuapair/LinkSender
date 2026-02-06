@@ -22,19 +22,40 @@
       background:rgba(255,255,255,.03);
       overflow:hidden;
       position:relative;
+      cursor:pointer;
+      user-select:none;
+    }
+    .logo-box:hover{
+      background:rgba(255,255,255,.055);
+      border-color:rgba(173,173,174,.8);
+    }
+    .logo-box:active{
+      transform:translateY(1px);
     }
     .logo-box img{
       max-width:100%;
       max-height:100%;
       object-fit:contain;
       display:none; /* hidden until a logo is loaded */
+      pointer-events:none;
     }
     .logo-placeholder{
       padding:10px 14px;
       font-size:16px;
       letter-spacing:.2px;
-      user-select:none;
+      pointer-events:none;
     }
+    .logo-hint{
+      position:absolute;
+      bottom:8px;
+      left:0; right:0;
+      font-size:12px;
+      color:rgba(199,199,199,.85);
+      pointer-events:none;
+    }
+
+    /* Hide the actual file input (we trigger it by clicking the logo box) */
+    #logoUpload{display:none;}
 
     input,button,textarea{font-size:16px;padding:12px;border:none;border-radius:8px;box-sizing:border-box;}
     input,textarea{background:#3c3c44;color:#fff;width:100%;}
@@ -74,7 +95,6 @@
       border-radius:10px;cursor:pointer;
     }
 
-    input[type="file"]{background:rgba(255,255,255,.06);color:#d7d7d7;}
     .status{font-size:12px;color:#c7c7c7;margin-top:6px;}
     .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0;}
     .smallnote{font-size:12px;color:#c7c7c7;margin-top:6px;}
@@ -83,12 +103,17 @@
 
 <body>
   <div class="wrap">
+    <!-- CLICKABLE LOGO AREA -->
     <div class="logo-container">
-      <div class="logo-box" id="logoBox" title="Upload a logo below">
+      <div class="logo-box" id="logoBox" title="Click to upload a logo">
         <div class="logo-placeholder" id="logoPlaceholder">Insert logo here</div>
         <img id="logoImg" alt="Uploaded Logo" />
+        <div class="logo-hint" id="logoHint">Click to upload</div>
       </div>
     </div>
+
+    <!-- Hidden input (triggered by clicking the logo box) -->
+    <input type="file" id="logoUpload" accept="image/*" />
 
     <h2>Link Assistant</h2>
 
@@ -97,18 +122,13 @@
 
       <div class="row">
         <div class="grow">
-          <div class="label">Upload Logo (saved when you click Save)</div>
-          <input type="file" id="logoUpload" accept="image/*" />
-          <div class="help">Your uploaded logo will be saved in this browser after you click Save.</div>
-        </div>
-
-        <div class="grow">
           <div class="label">Background Color (saved when you click Save)</div>
           <div class="color-wrap">
             <input type="color" id="bgColorPicker" value="#000000" />
             <input type="text" id="bgColorText" placeholder="#000000" value="#000000" />
             <button class="action-button secondary" type="button" onclick="resetBg()">Reset</button>
           </div>
+          <div class="help">Tip: Click Save to keep your color after refresh.</div>
         </div>
       </div>
 
@@ -187,9 +207,6 @@
   </div>
 
   <script>
-    // ============================
-    // LocalStorage (manual SAVE)
-    // ============================
     const LS_KEYS = {
       bg: "linkAssistant_bgColor",
       customItems: "linkAssistant_customItems",
@@ -207,35 +224,41 @@
       return "i_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
     }
 
-    // Draft state (before Save)
     let draftBg = "#000000";
     let draftCustomItems = [];
-    let draftLogoDataUrl = ""; // base64 data URL (optional)
+    let draftLogoDataUrl = "";
 
     function setStatus(msg){
       document.getElementById("saveStatus").textContent = msg;
     }
 
-    // ============================
-    // Logo placeholder / display
-    // ============================
+    // Logo box triggers upload
+    const logoBox = document.getElementById("logoBox");
+    const logoUpload = document.getElementById("logoUpload");
+    logoBox.addEventListener("click", () => logoUpload.click());
+    logoBox.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") logoUpload.click();
+    });
+    logoBox.setAttribute("tabindex","0"); // keyboard focus
+
     function showLogo(dataUrl){
       const img = document.getElementById("logoImg");
       const ph = document.getElementById("logoPlaceholder");
+      const hint = document.getElementById("logoHint");
+
       if (dataUrl && dataUrl.startsWith("data:image/")){
         img.src = dataUrl;
         img.style.display = "block";
         ph.style.display = "none";
+        hint.textContent = "Click to change";
       } else {
         img.removeAttribute("src");
         img.style.display = "none";
         ph.style.display = "block";
+        hint.textContent = "Click to upload";
       }
     }
 
-    // ============================
-    // Selection / message building
-    // ============================
     function updateCount(){
       const selected = document.querySelectorAll(".send-button.selected").length;
       document.getElementById("selectedCount").textContent = `Selected: ${selected}`;
@@ -255,9 +278,7 @@
       const selectedButtons = Array.from(document.querySelectorAll(".send-button.selected"));
       if (selectedButtons.length === 0) return null;
 
-      const lines = [];
-      lines.push("Here are the requested links/info:");
-      lines.push("");
+      const lines = ["Here are the requested links/info:", ""];
 
       selectedButtons.forEach((btn) => {
         const title = btn.getAttribute("data-title") || "Item";
@@ -266,20 +287,15 @@
 
         lines.push(`— ${title}`);
 
-        // Text-only
         if ((!link || link.trim() === "") && customBody && customBody.trim().length > 0) {
-          lines.push(customBody.trim());
-          lines.push("");
+          lines.push(customBody.trim(), "");
           return;
         }
 
-        // Text + link
         if (customBody && customBody.trim().length > 0) {
-          lines.push(customBody.trim());
-          lines.push("");
+          lines.push(customBody.trim(), "");
           if (link && link.trim().length > 0) lines.push(`Link: ${link}`);
         } else {
-          // Link only
           if (link && link.trim().length > 0) lines.push(link);
         }
 
@@ -297,18 +313,14 @@
       if (!payload) return alert("Select at least one item first.");
 
       if (recipient.includes("@")){
-        const mailto = `mailto:${recipient}?subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(payload.body)}`;
-        window.open(mailto);
+        window.open(`mailto:${recipient}?subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(payload.body)}`);
       } else {
-        const sms = `sms:${recipient}?body=${encodeURIComponent(payload.body)}`;
-        window.open(sms);
+        window.open(`sms:${recipient}?body=${encodeURIComponent(payload.body)}`);
       }
     }
 
-    // ============================
-    // Logo upload (draft until Save, then saved)
-    // ============================
-    document.getElementById("logoUpload").addEventListener("change", (e) => {
+    // Logo upload handler (draft until Save)
+    logoUpload.addEventListener("change", (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
 
@@ -318,7 +330,6 @@
         return;
       }
 
-      // localStorage quota warning
       if (file.size > 2_000_000) {
         const ok = confirm("This logo file is a bit large. It may not save in some browsers. Continue?");
         if (!ok) { e.target.value = ""; return; }
@@ -333,15 +344,10 @@
       reader.readAsDataURL(file);
     });
 
-    // ============================
     // Background color (draft until Save)
-    // ============================
     const bgPicker = document.getElementById("bgColorPicker");
     const bgText = document.getElementById("bgColorText");
-
-    function isValidHexColor(v){
-      return /^#([0-9A-Fa-f]{6})$/.test(v.trim());
-    }
+    function isValidHexColor(v){ return /^#([0-9A-Fa-f]{6})$/.test(v.trim()); }
 
     function applyBgColor(hex){
       document.body.style.backgroundColor = hex;
@@ -350,18 +356,11 @@
       draftBg = hex;
       setStatus("Unsaved changes.");
     }
-
     bgPicker.addEventListener("input", () => applyBgColor(bgPicker.value));
-    bgText.addEventListener("input", () => {
-      const v = bgText.value.trim();
-      if (isValidHexColor(v)) applyBgColor(v);
-    });
-
+    bgText.addEventListener("input", () => { const v=bgText.value.trim(); if (isValidHexColor(v)) applyBgColor(v); });
     function resetBg(){ applyBgColor("#000000"); }
 
-    // ============================
-    // Items (draft until Save)
-    // ============================
+    // Items
     function renderItem(item){
       const btn = document.createElement("button");
       btn.className = "send-button";
@@ -385,13 +384,11 @@
     function addLinkItem(){
       const title = document.getElementById("linkTitle").value.trim();
       const link = document.getElementById("linkUrl").value.trim();
-
       if (!title) return alert("Please enter a label for the link.");
       if (!link) return alert("Please enter a URL.");
       if (!/^https?:\/\/.+/i.test(link)) return alert("Use a full link starting with http:// or https://");
 
       const item = { id: makeId(), type: "link", title, link };
-
       draftCustomItems.push(item);
       renderItem(item);
 
@@ -406,7 +403,6 @@
       if (!body) return alert("Please enter some text.");
 
       const item = { id: makeId(), type: "text", title: title || "Custom Text", body };
-
       draftCustomItems.push(item);
       renderItem(item);
 
@@ -420,30 +416,24 @@
       if (selected.length === 0) return alert("Select at least one item to remove.");
 
       const idsToRemove = selected.map(btn => btn.getAttribute("data-custom-id")).filter(Boolean);
-
       selected.forEach(btn => btn.remove());
 
       if (idsToRemove.length){
         draftCustomItems = draftCustomItems.filter(x => !idsToRemove.includes(x.id));
         setStatus("Unsaved changes.");
       }
-
       updateCount();
     }
 
-    // ============================
-    // SAVE (persist after refresh)
-    // ============================
+    // Save / Reset
     function saveAll(){
       try {
         localStorage.setItem(LS_KEYS.bg, draftBg);
         setCustomItems(draftCustomItems);
 
-        // Save logo only if user uploaded one (can also be intentionally blank)
         if (draftLogoDataUrl && draftLogoDataUrl.startsWith("data:image/")) {
           localStorage.setItem(LS_KEYS.logo, draftLogoDataUrl);
         } else {
-          // if no logo, ensure none saved
           localStorage.removeItem(LS_KEYS.logo);
         }
 
@@ -463,23 +453,18 @@
       draftCustomItems = [];
       draftLogoDataUrl = "";
 
-      // reset UI
       applyBgColor("#000000");
       document.getElementById("buttonContainer").innerHTML = "";
       clearSelection();
-      showLogo(""); // back to placeholder
+      showLogo("");
 
       setStatus("Saved data cleared. Starting from none again.");
     }
 
-    // ============================
-    // INIT (start with placeholder unless a saved logo exists)
-    // ============================
+    // Init
     (function init(){
-      // Start with placeholder by default
       showLogo("");
 
-      // Restore saved bg
       const savedBg = localStorage.getItem(LS_KEYS.bg);
       if (savedBg && isValidHexColor(savedBg)){
         document.body.style.backgroundColor = savedBg;
@@ -493,14 +478,12 @@
         draftBg = "#000000";
       }
 
-      // Restore saved logo (if previously saved)
       const savedLogo = localStorage.getItem(LS_KEYS.logo);
       if (savedLogo && savedLogo.startsWith("data:image/")){
         draftLogoDataUrl = savedLogo;
         showLogo(savedLogo);
       }
 
-      // Restore saved items
       loadAndRenderSavedItems();
       updateCount();
 
@@ -511,7 +494,7 @@
 
       setStatus(hasSavedAnything
         ? "Loaded saved settings (if any). Click Save after changes."
-        : "Starting from none. Add items/logo/color and click Save to keep after refresh."
+        : "Starting from none. Click the logo box to upload a logo, then click Save."
       );
     })();
   </script>
