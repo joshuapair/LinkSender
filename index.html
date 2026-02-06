@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Link Sender App</title>
+  <style>
+    body{font-family:Arial,sans-serif;text-align:center;background:#000;color:#adadae;margin:20px;}
+    .wrap{max-width:920px;margin:0 auto;}
+    .logo-container{margin-bottom:14px;}
+    .logo-container img{max-width:380px;height:auto;}
+
+    input,button,textarea{font-size:16px;padding:12px;border:none;border-radius:8px;box-sizing:border-box;}
+    input,textarea{background:#3c3c44;color:#fff;width:100%;}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:10px 0;}
+    .row .grow{flex:1 1 260px;min-width:240px;}
+    .row .fixed{flex:0 0 auto;}
+
+    .panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;margin:14px auto 18px;text-align:left;}
+    .panel h3{margin:0 0 10px;font-size:16px;color:#d7d7d7;letter-spacing:.3px;}
+    .panel .help{font-size:12px;color:#c7c7c7;margin-top:6px;}
+    .label{font-size:13px;color:#c7c7c7;margin:0 0 6px;}
+
+    .send-button{
+      display:block;margin:10px auto;padding:12px;font-size:18px;cursor:pointer;
+      background:linear-gradient(45deg,#3c3c44,#656565);color:silver;border:none;border-radius:8px;
+      width:100%;max-width:520px;transition:all .2s;box-shadow:0 0 8px rgba(0,123,255,.5);
+      text-align:center;white-space:normal;line-height:1.2;
+    }
+    .send-button:active{box-shadow:0 0 15px rgba(0,123,255,1);}
+    .send-button.selected{outline:2px solid rgba(0,123,255,.9);box-shadow:0 0 18px rgba(0,123,255,.95);transform:translateY(-1px);}
+
+    .action-button{
+      cursor:pointer;background:linear-gradient(45deg,#1f1f25,#3a3a44);color:#fff;border:none;border-radius:8px;
+      transition:all .2s;box-shadow:0 0 8px rgba(40,167,69,.35);width:100%;
+    }
+    .action-button:active{box-shadow:0 0 15px rgba(40,167,69,.85);}
+    .action-button.secondary{background:linear-gradient(45deg,#2b2b33,#40404a);box-shadow:0 0 8px rgba(255,255,255,.08);color:#d7d7d7;}
+    .action-button.danger{background:linear-gradient(45deg,#2a1d1d,#4a2b2b);box-shadow:0 0 8px rgba(220,53,69,.25);color:#ffd7d7;}
+    .action-button.info{background:linear-gradient(45deg,#162026,#233844);box-shadow:0 0 8px rgba(0,123,255,.25);color:#d7ecff;}
+
+    .count{margin-top:6px;font-size:14px;color:#c7c7c7;}
+    .button-container{margin-top:18px;display:flex;flex-direction:column;align-items:center;}
+
+    .color-wrap{display:flex;gap:10px;align-items:center;width:100%;}
+    .color-wrap input[type="color"]{
+      width:52px;height:44px;padding:0;background:transparent;border:1px solid rgba(255,255,255,.14);
+      border-radius:10px;cursor:pointer;
+    }
+
+    input[type="file"]{background:rgba(255,255,255,.06);color:#d7d7d7;}
+    .status{font-size:12px;color:#c7c7c7;margin-top:6px;}
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0;}
+    .smallnote{font-size:12px;color:#c7c7c7;margin-top:6px;}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="logo-container">
+      <img id="logoImg"
+        src="https://raw.githubusercontent.com/joshuapair/ARS-Full-Logo/main/Screen%20Shot%202025-02-23%20at%201.43.19%20PM.png"
+        alt="Company Logo">
+    </div>
+
+    <h2>Link Assistant</h2>
+
+    <div class="panel">
+      <h3>Customize</h3>
+
+      <div class="row">
+        <div class="grow">
+          <div class="label">Upload Logo (local file)</div>
+          <input type="file" id="logoUpload" accept="image/*" />
+          <div class="help">Logo upload is local to your device. (Not saved after refresh in this version.)</div>
+        </div>
+
+        <div class="grow">
+          <div class="label">Background Color (saved when you click Save)</div>
+          <div class="color-wrap">
+            <input type="color" id="bgColorPicker" value="#000000" />
+            <input type="text" id="bgColorText" placeholder="#000000" value="#000000" />
+            <button class="action-button secondary" type="button" onclick="resetBg()">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>Add Items</h3>
+      <div class="smallnote">Create either a Link button or a Text-only item. Select any items and send them together.</div>
+
+      <!-- ADD LINK ITEM -->
+      <div class="row">
+        <div class="grow">
+          <div class="label">Link Button Label</div>
+          <input type="text" id="linkTitle" placeholder="Example: SAP Evaluation ($500)" />
+        </div>
+        <div class="grow">
+          <div class="label">Link URL</div>
+          <input type="url" id="linkUrl" placeholder="https://..." />
+        </div>
+        <div class="fixed" style="min-width:180px;width:180px;">
+          <div class="label">&nbsp;</div>
+          <button class="action-button" type="button" onclick="addLinkItem()">Add Link</button>
+        </div>
+      </div>
+
+      <!-- ADD TEXT ITEM -->
+      <div class="row">
+        <div class="grow">
+          <div class="label">Text Item Title (optional)</div>
+          <input type="text" id="textTitle" placeholder="Example: Step 5 Instructions" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <div class="label">Text Content</div>
+          <textarea id="textBody" rows="5" placeholder="Paste or type any text you want sent…"></textarea>
+        </div>
+        <div class="fixed" style="min-width:180px;width:180px;">
+          <div class="label">&nbsp;</div>
+          <button class="action-button" type="button" onclick="addTextItem()">Add Text</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="fixed" style="min-width:220px;width:220px;">
+          <button class="action-button danger" type="button" onclick="removeSelectedItems()">Remove Selected</button>
+        </div>
+
+        <div class="fixed" style="min-width:180px;width:180px;">
+          <button class="action-button info" type="button" onclick="saveAll()">Save</button>
+        </div>
+
+        <div class="fixed" style="min-width:220px;width:220px;">
+          <button class="action-button secondary" type="button" onclick="resetSaved()">Reset Saved</button>
+        </div>
+      </div>
+
+      <div class="status" id="saveStatus">Loaded saved settings (if any). Click Save after changes.</div>
+    </div>
+
+    <!-- RECIPIENT + ACTION BAR -->
+    <div class="row">
+      <div class="grow">
+        <input type="text" id="recipient" placeholder="Enter email or phone number">
+      </div>
+      <div class="fixed" style="min-width:180px;width:180px;">
+        <button class="action-button" onclick="sendSelected()">Send Selected</button>
+      </div>
+      <div class="fixed" style="min-width:180px;width:180px;">
+        <button class="action-button secondary" onclick="clearSelection()">Clear Selection</button>
+      </div>
+    </div>
+
+    <div class="count" id="selectedCount">Selected: 0</div>
+
+    <!-- START FROM NONE: container is empty and will be populated from saved items or items you add -->
+    <div class="button-container" id="buttonContainer"></div>
+  </div>
+
+  <script>
+    // ============================
+    // LocalStorage (manual SAVE)
+    // ============================
+    const LS_KEYS = {
+      bg: "linkAssistant_bgColor",
+      customItems: "linkAssistant_customItems"
+    };
+
+    function getCustomItems(){
+      try { return JSON.parse(localStorage.getItem(LS_KEYS.customItems) || "[]"); }
+      catch { return []; }
+    }
+    function setCustomItems(items){
+      localStorage.setItem(LS_KEYS.customItems, JSON.stringify(items));
+    }
+    function makeId(){
+      return "i_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    }
+
+    // Draft state (what the user is building before clicking Save)
+    let draftBg = "#000000";
+    let draftCustomItems = [];
+
+    function setStatus(msg){
+      document.getElementById("saveStatus").textContent = msg;
+    }
+
+    // ============================
+    // Selection / message building
+    // ============================
+    function updateCount(){
+      const selected = document.querySelectorAll(".send-button.selected").length;
+      document.getElementById("selectedCount").textContent = `Selected: ${selected}`;
+    }
+
+    function toggleSelect(button){
+      button.classList.toggle("selected");
+      updateCount();
+    }
+
+    function clearSelection(){
+      document.querySelectorAll(".send-button.selected").forEach(btn => btn.classList.remove("selected"));
+      updateCount();
+    }
+
+    function buildCombinedMessage(){
+      const selectedButtons = Array.from(document.querySelectorAll(".send-button.selected"));
+      if (selectedButtons.length === 0) return null;
+
+      const lines = [];
+      lines.push("Here are the requested links/info:");
+      lines.push("");
+
+      selectedButtons.forEach((btn, idx) => {
+        const title = btn.getAttribute("data-title") || `Item ${idx + 1}`;
+        const link = btn.getAttribute("data-link") || "";
+        const customBody = btn.getAttribute("data-body");
+
+        lines.push(`— ${title}`);
+
+        // Text-only
+        if ((!link || link.trim() === "") && customBody && customBody.trim().length > 0) {
+          lines.push(customBody.trim());
+          lines.push("");
+          return;
+        }
+
+        // Text + link
+        if (customBody && customBody.trim().length > 0) {
+          lines.push(customBody.trim());
+          lines.push("");
+          if (link && link.trim().length > 0) lines.push(`Link: ${link}`);
+        } else {
+          // Link only
+          if (link && link.trim().length > 0) lines.push(link);
+        }
+
+        lines.push("");
+      });
+
+      return { subject: `Links (${selectedButtons.length})`, body: lines.join("\n") };
+    }
+
+    function sendSelected(){
+      const recipient = document.getElementById("recipient").value.trim();
+      if (!recipient) return alert("Please enter an email or phone number.");
+
+      const payload = buildCombinedMessage();
+      if (!payload) return alert("Select at least one item first.");
+
+      if (recipient.includes("@")){
+        const mailto = `mailto:${recipient}?subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(payload.body)}`;
+        window.open(mailto);
+      } else {
+        const sms = `sms:${recipient}?body=${encodeURIComponent(payload.body)}`;
+        window.open(sms);
+      }
+    }
+
+    // ============================
+    // Logo upload (NOT saved)
+    // ============================
+    document.getElementById("logoUpload").addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")){
+        alert("Please upload an image file.");
+        e.target.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById("logoImg").src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ============================
+    // Background color (draft until Save)
+    // ============================
+    const bgPicker = document.getElementById("bgColorPicker");
+    const bgText = document.getElementById("bgColorText");
+
+    function isValidHexColor(v){
+      return /^#([0-9A-Fa-f]{6})$/.test(v.trim());
+    }
+
+    function applyBgColor(hex){
+      document.body.style.backgroundColor = hex;
+      bgPicker.value = hex;
+      bgText.value = hex;
+      draftBg = hex;               // draft only
+      setStatus("Unsaved changes.");
+    }
+
+    bgPicker.addEventListener("input", () => applyBgColor(bgPicker.value));
+    bgText.addEventListener("input", () => {
+      const v = bgText.value.trim();
+      if (isValidHexColor(v)) applyBgColor(v);
+    });
+
+    function resetBg(){ applyBgColor("#000000"); }
+
+    // ============================
+    // Items (draft until Save)
+    // ============================
+    function renderItem(item){
+      const btn = document.createElement("button");
+      btn.className = "send-button";
+      btn.textContent = item.title || (item.type === "text" ? "Custom Text" : "Custom Link");
+
+      btn.setAttribute("data-custom-id", item.id);
+      btn.setAttribute("data-title", item.title || "");
+      btn.setAttribute("data-link", item.link || "");
+      if (item.body) btn.setAttribute("data-body", item.body);
+
+      btn.addEventListener("click", () => toggleSelect(btn));
+      document.getElementById("buttonContainer").appendChild(btn);
+    }
+
+    function clearRenderedItems(){
+      document.getElementById("buttonContainer").innerHTML = "";
+      clearSelection();
+    }
+
+    function loadAndRenderSavedItems(){
+      const saved = getCustomItems();
+      saved.forEach(renderItem);
+      draftCustomItems = saved.slice(); // initialize draft from saved
+    }
+
+    function addLinkItem(){
+      const title = document.getElementById("linkTitle").value.trim();
+      const link = document.getElementById("linkUrl").value.trim();
+
+      if (!title) return alert("Please enter a label for the link.");
+      if (!link) return alert("Please enter a URL.");
+      if (!/^https?:\/\/.+/i.test(link)) return alert("Use a full link starting with http:// or https://");
+
+      const item = {
+        id: makeId(),
+        type: "link",
+        title,
+        link
+      };
+
+      draftCustomItems.push(item);
+      renderItem(item);
+
+      document.getElementById("linkTitle").value = "";
+      document.getElementById("linkUrl").value = "";
+      setStatus("Unsaved changes.");
+    }
+
+    function addTextItem(){
+      const title = document.getElementById("textTitle").value.trim();
+      const body = document.getElementById("textBody").value.trim();
+      if (!body) return alert("Please enter some text.");
+
+      const item = {
+        id: makeId(),
+        type: "text",
+        title: title || "Custom Text",
+        body
+      };
+
+      draftCustomItems.push(item);
+      renderItem(item);
+
+      document.getElementById("textTitle").value = "";
+      document.getElementById("textBody").value = "";
+      setStatus("Unsaved changes.");
+    }
+
+    function removeSelectedItems(){
+      const selected = Array.from(document.querySelectorAll(".send-button.selected"));
+      if (selected.length === 0) return alert("Select at least one item to remove.");
+
+      const idsToRemove = selected
+        .map(btn => btn.getAttribute("data-custom-id"))
+        .filter(Boolean);
+
+      selected.forEach(btn => btn.remove());
+
+      if (idsToRemove.length){
+        draftCustomItems = draftCustomItems.filter(x => !idsToRemove.includes(x.id));
+        setStatus("Unsaved changes.");
+      }
+
+      updateCount();
+    }
+
+    // ============================
+    // SAVE (this makes it persist after refresh)
+    // ============================
+    function saveAll(){
+      localStorage.setItem(LS_KEYS.bg, draftBg);
+      setCustomItems(draftCustomItems);
+      setStatus("Saved. Refreshing will keep your background + items.");
+    }
+
+    function resetSaved(){
+      localStorage.removeItem(LS_KEYS.bg);
+      localStorage.removeItem(LS_KEYS.customItems);
+      // Clear UI + draft
+      draftBg = "#000000";
+      draftCustomItems = [];
+      applyBgColor("#000000");
+      clearRenderedItems();
+      setStatus("Saved data cleared. Add items and click Save.");
+    }
+
+    // ============================
+    // INIT: start from none (only load items if you previously saved them)
+    // ============================
+    const savedBg = localStorage.getItem(LS_KEYS.bg);
+    if (savedBg && isValidHexColor(savedBg)){
+      document.body.style.backgroundColor = savedBg;
+      bgPicker.value = savedBg;
+      bgText.value = savedBg;
+      draftBg = savedBg;
+    } else {
+      document.body.style.backgroundColor = "#000000";
+      bgPicker.value = "#000000";
+      bgText.value = "#000000";
+      draftBg = "#000000";
+    }
+
+    loadAndRenderSavedItems();
+    updateCount();
+
+    if (getCustomItems().length === 0 && !(savedBg && isValidHexColor(savedBg))){
+      setStatus("Starting from none. Add items and click Save to keep them after refresh.");
+    } else {
+      setStatus("Loaded saved settings (if any). Click Save after changes.");
+    }
+  </script>
+</body>
+</html>
