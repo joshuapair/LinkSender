@@ -7,8 +7,34 @@
   <style>
     body{font-family:Arial,sans-serif;text-align:center;background:#000;color:#adadae;margin:20px;}
     .wrap{max-width:920px;margin:0 auto;}
-    .logo-container{margin-bottom:14px;}
-    .logo-container img{max-width:380px;height:auto;}
+
+    /* Logo */
+    .logo-container{margin-bottom:14px;display:flex;justify-content:center;}
+    .logo-box{
+      width:min(380px, 92vw);
+      height:110px;
+      border:2px dashed rgba(173,173,174,.55);
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#c7c7c7;
+      background:rgba(255,255,255,.03);
+      overflow:hidden;
+      position:relative;
+    }
+    .logo-box img{
+      max-width:100%;
+      max-height:100%;
+      object-fit:contain;
+      display:none; /* hidden until a logo is loaded */
+    }
+    .logo-placeholder{
+      padding:10px 14px;
+      font-size:16px;
+      letter-spacing:.2px;
+      user-select:none;
+    }
 
     input,button,textarea{font-size:16px;padding:12px;border:none;border-radius:8px;box-sizing:border-box;}
     input,textarea{background:#3c3c44;color:#fff;width:100%;}
@@ -58,9 +84,10 @@
 <body>
   <div class="wrap">
     <div class="logo-container">
-      <img id="logoImg"
-        src="https://raw.githubusercontent.com/joshuapair/ARS-Full-Logo/main/Screen%20Shot%202025-02-23%20at%201.43.19%20PM.png"
-        alt="Company Logo">
+      <div class="logo-box" id="logoBox" title="Upload a logo below">
+        <div class="logo-placeholder" id="logoPlaceholder">Insert logo here</div>
+        <img id="logoImg" alt="Uploaded Logo" />
+      </div>
     </div>
 
     <h2>Link Assistant</h2>
@@ -70,9 +97,9 @@
 
       <div class="row">
         <div class="grow">
-          <div class="label">Upload Logo (local file)</div>
+          <div class="label">Upload Logo (saved when you click Save)</div>
           <input type="file" id="logoUpload" accept="image/*" />
-          <div class="help">Logo upload is local to your device. (Not saved after refresh in this version.)</div>
+          <div class="help">Your uploaded logo will be saved in this browser after you click Save.</div>
         </div>
 
         <div class="grow">
@@ -87,7 +114,7 @@
 
       <div class="divider"></div>
 
-      <h3>Add Items</h3>
+      <h3>Add Items (Start from none)</h3>
       <div class="smallnote">Create either a Link button or a Text-only item. Select any items and send them together.</div>
 
       <!-- ADD LINK ITEM -->
@@ -139,7 +166,7 @@
         </div>
       </div>
 
-      <div class="status" id="saveStatus">Loaded saved settings (if any). Click Save after changes.</div>
+      <div class="status" id="saveStatus">Starting from none. Add items/logo/color and click Save to keep after refresh.</div>
     </div>
 
     <!-- RECIPIENT + ACTION BAR -->
@@ -156,8 +183,6 @@
     </div>
 
     <div class="count" id="selectedCount">Selected: 0</div>
-
-    <!-- START FROM NONE: container is empty and will be populated from saved items or items you add -->
     <div class="button-container" id="buttonContainer"></div>
   </div>
 
@@ -167,7 +192,8 @@
     // ============================
     const LS_KEYS = {
       bg: "linkAssistant_bgColor",
-      customItems: "linkAssistant_customItems"
+      customItems: "linkAssistant_customItems",
+      logo: "linkAssistant_logoDataUrl"
     };
 
     function getCustomItems(){
@@ -181,12 +207,30 @@
       return "i_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
     }
 
-    // Draft state (what the user is building before clicking Save)
+    // Draft state (before Save)
     let draftBg = "#000000";
     let draftCustomItems = [];
+    let draftLogoDataUrl = ""; // base64 data URL (optional)
 
     function setStatus(msg){
       document.getElementById("saveStatus").textContent = msg;
+    }
+
+    // ============================
+    // Logo placeholder / display
+    // ============================
+    function showLogo(dataUrl){
+      const img = document.getElementById("logoImg");
+      const ph = document.getElementById("logoPlaceholder");
+      if (dataUrl && dataUrl.startsWith("data:image/")){
+        img.src = dataUrl;
+        img.style.display = "block";
+        ph.style.display = "none";
+      } else {
+        img.removeAttribute("src");
+        img.style.display = "none";
+        ph.style.display = "block";
+      }
     }
 
     // ============================
@@ -215,8 +259,8 @@
       lines.push("Here are the requested links/info:");
       lines.push("");
 
-      selectedButtons.forEach((btn, idx) => {
-        const title = btn.getAttribute("data-title") || `Item ${idx + 1}`;
+      selectedButtons.forEach((btn) => {
+        const title = btn.getAttribute("data-title") || "Item";
         const link = btn.getAttribute("data-link") || "";
         const customBody = btn.getAttribute("data-body");
 
@@ -262,7 +306,7 @@
     }
 
     // ============================
-    // Logo upload (NOT saved)
+    // Logo upload (draft until Save, then saved)
     // ============================
     document.getElementById("logoUpload").addEventListener("change", (e) => {
       const file = e.target.files && e.target.files[0];
@@ -274,9 +318,17 @@
         return;
       }
 
+      // localStorage quota warning
+      if (file.size > 2_000_000) {
+        const ok = confirm("This logo file is a bit large. It may not save in some browsers. Continue?");
+        if (!ok) { e.target.value = ""; return; }
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
-        document.getElementById("logoImg").src = reader.result;
+        draftLogoDataUrl = reader.result;
+        showLogo(draftLogoDataUrl);
+        setStatus("Unsaved changes.");
       };
       reader.readAsDataURL(file);
     });
@@ -295,7 +347,7 @@
       document.body.style.backgroundColor = hex;
       bgPicker.value = hex;
       bgText.value = hex;
-      draftBg = hex;               // draft only
+      draftBg = hex;
       setStatus("Unsaved changes.");
     }
 
@@ -324,15 +376,10 @@
       document.getElementById("buttonContainer").appendChild(btn);
     }
 
-    function clearRenderedItems(){
-      document.getElementById("buttonContainer").innerHTML = "";
-      clearSelection();
-    }
-
     function loadAndRenderSavedItems(){
       const saved = getCustomItems();
       saved.forEach(renderItem);
-      draftCustomItems = saved.slice(); // initialize draft from saved
+      draftCustomItems = saved.slice();
     }
 
     function addLinkItem(){
@@ -343,12 +390,7 @@
       if (!link) return alert("Please enter a URL.");
       if (!/^https?:\/\/.+/i.test(link)) return alert("Use a full link starting with http:// or https://");
 
-      const item = {
-        id: makeId(),
-        type: "link",
-        title,
-        link
-      };
+      const item = { id: makeId(), type: "link", title, link };
 
       draftCustomItems.push(item);
       renderItem(item);
@@ -363,12 +405,7 @@
       const body = document.getElementById("textBody").value.trim();
       if (!body) return alert("Please enter some text.");
 
-      const item = {
-        id: makeId(),
-        type: "text",
-        title: title || "Custom Text",
-        body
-      };
+      const item = { id: makeId(), type: "text", title: title || "Custom Text", body };
 
       draftCustomItems.push(item);
       renderItem(item);
@@ -382,9 +419,7 @@
       const selected = Array.from(document.querySelectorAll(".send-button.selected"));
       if (selected.length === 0) return alert("Select at least one item to remove.");
 
-      const idsToRemove = selected
-        .map(btn => btn.getAttribute("data-custom-id"))
-        .filter(Boolean);
+      const idsToRemove = selected.map(btn => btn.getAttribute("data-custom-id")).filter(Boolean);
 
       selected.forEach(btn => btn.remove());
 
@@ -397,49 +432,88 @@
     }
 
     // ============================
-    // SAVE (this makes it persist after refresh)
+    // SAVE (persist after refresh)
     // ============================
     function saveAll(){
-      localStorage.setItem(LS_KEYS.bg, draftBg);
-      setCustomItems(draftCustomItems);
-      setStatus("Saved. Refreshing will keep your background + items.");
+      try {
+        localStorage.setItem(LS_KEYS.bg, draftBg);
+        setCustomItems(draftCustomItems);
+
+        // Save logo only if user uploaded one (can also be intentionally blank)
+        if (draftLogoDataUrl && draftLogoDataUrl.startsWith("data:image/")) {
+          localStorage.setItem(LS_KEYS.logo, draftLogoDataUrl);
+        } else {
+          // if no logo, ensure none saved
+          localStorage.removeItem(LS_KEYS.logo);
+        }
+
+        setStatus("Saved. Refreshing will keep your background + items + logo (if added).");
+      } catch (e) {
+        alert("Could not save. The logo may be too large for browser storage. Try a smaller image (PNG/JPG under ~1–2MB).");
+        console.error(e);
+      }
     }
 
     function resetSaved(){
       localStorage.removeItem(LS_KEYS.bg);
       localStorage.removeItem(LS_KEYS.customItems);
-      // Clear UI + draft
+      localStorage.removeItem(LS_KEYS.logo);
+
       draftBg = "#000000";
       draftCustomItems = [];
+      draftLogoDataUrl = "";
+
+      // reset UI
       applyBgColor("#000000");
-      clearRenderedItems();
-      setStatus("Saved data cleared. Add items and click Save.");
+      document.getElementById("buttonContainer").innerHTML = "";
+      clearSelection();
+      showLogo(""); // back to placeholder
+
+      setStatus("Saved data cleared. Starting from none again.");
     }
 
     // ============================
-    // INIT: start from none (only load items if you previously saved them)
+    // INIT (start with placeholder unless a saved logo exists)
     // ============================
-    const savedBg = localStorage.getItem(LS_KEYS.bg);
-    if (savedBg && isValidHexColor(savedBg)){
-      document.body.style.backgroundColor = savedBg;
-      bgPicker.value = savedBg;
-      bgText.value = savedBg;
-      draftBg = savedBg;
-    } else {
-      document.body.style.backgroundColor = "#000000";
-      bgPicker.value = "#000000";
-      bgText.value = "#000000";
-      draftBg = "#000000";
-    }
+    (function init(){
+      // Start with placeholder by default
+      showLogo("");
 
-    loadAndRenderSavedItems();
-    updateCount();
+      // Restore saved bg
+      const savedBg = localStorage.getItem(LS_KEYS.bg);
+      if (savedBg && isValidHexColor(savedBg)){
+        document.body.style.backgroundColor = savedBg;
+        bgPicker.value = savedBg;
+        bgText.value = savedBg;
+        draftBg = savedBg;
+      } else {
+        document.body.style.backgroundColor = "#000000";
+        bgPicker.value = "#000000";
+        bgText.value = "#000000";
+        draftBg = "#000000";
+      }
 
-    if (getCustomItems().length === 0 && !(savedBg && isValidHexColor(savedBg))){
-      setStatus("Starting from none. Add items and click Save to keep them after refresh.");
-    } else {
-      setStatus("Loaded saved settings (if any). Click Save after changes.");
-    }
+      // Restore saved logo (if previously saved)
+      const savedLogo = localStorage.getItem(LS_KEYS.logo);
+      if (savedLogo && savedLogo.startsWith("data:image/")){
+        draftLogoDataUrl = savedLogo;
+        showLogo(savedLogo);
+      }
+
+      // Restore saved items
+      loadAndRenderSavedItems();
+      updateCount();
+
+      const hasSavedAnything =
+        (savedBg && isValidHexColor(savedBg)) ||
+        (getCustomItems().length > 0) ||
+        (savedLogo && savedLogo.startsWith("data:image/"));
+
+      setStatus(hasSavedAnything
+        ? "Loaded saved settings (if any). Click Save after changes."
+        : "Starting from none. Add items/logo/color and click Save to keep after refresh."
+      );
+    })();
   </script>
 </body>
 </html>
