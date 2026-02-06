@@ -29,9 +29,7 @@
       background:rgba(255,255,255,.055);
       border-color:rgba(173,173,174,.8);
     }
-    .logo-box:active{
-      transform:translateY(1px);
-    }
+    .logo-box:active{ transform:translateY(1px); }
     .logo-box img{
       max-width:100%;
       max-height:100%;
@@ -53,8 +51,6 @@
       color:rgba(199,199,199,.85);
       pointer-events:none;
     }
-
-    /* Hide the actual file input (we trigger it by clicking the logo box) */
     #logoUpload{display:none;}
 
     input,button,textarea{font-size:16px;padding:12px;border:none;border-radius:8px;box-sizing:border-box;}
@@ -63,7 +59,14 @@
     .row .grow{flex:1 1 260px;min-width:240px;}
     .row .fixed{flex:0 0 auto;}
 
-    .panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;margin:14px auto 18px;text-align:left;}
+    .panel{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:14px;
+      margin:14px auto 18px;
+      text-align:left;
+    }
     .panel h3{margin:0 0 10px;font-size:16px;color:#d7d7d7;letter-spacing:.3px;}
     .panel .help{font-size:12px;color:#c7c7c7;margin-top:6px;}
     .label{font-size:13px;color:#c7c7c7;margin:0 0 6px;}
@@ -75,24 +78,57 @@
       text-align:center;white-space:normal;line-height:1.2;
     }
     .send-button:active{box-shadow:0 0 15px rgba(0,123,255,1);}
-    .send-button.selected{outline:2px solid rgba(0,123,255,.9);box-shadow:0 0 18px rgba(0,123,255,.95);transform:translateY(-1px);}
+    .send-button.selected{
+      outline:2px solid rgba(0,123,255,.9);
+      box-shadow:0 0 18px rgba(0,123,255,.95);
+      transform:translateY(-1px);
+    }
 
     .action-button{
-      cursor:pointer;background:linear-gradient(45deg,#1f1f25,#3a3a44);color:#fff;border:none;border-radius:8px;
-      transition:all .2s;box-shadow:0 0 8px rgba(40,167,69,.35);width:100%;
+      cursor:pointer;
+      background:linear-gradient(45deg,#1f1f25,#3a3a44);
+      color:#fff;border:none;border-radius:8px;
+      transition:all .2s;
+      box-shadow:0 0 8px rgba(40,167,69,.35);
+      width:100%;
     }
     .action-button:active{box-shadow:0 0 15px rgba(40,167,69,.85);}
-    .action-button.secondary{background:linear-gradient(45deg,#2b2b33,#40404a);box-shadow:0 0 8px rgba(255,255,255,.08);color:#d7d7d7;}
-    .action-button.danger{background:linear-gradient(45deg,#2a1d1d,#4a2b2b);box-shadow:0 0 8px rgba(220,53,69,.25);color:#ffd7d7;}
-    .action-button.info{background:linear-gradient(45deg,#162026,#233844);box-shadow:0 0 8px rgba(0,123,255,.25);color:#d7ecff;}
+    .action-button.secondary{
+      background:linear-gradient(45deg,#2b2b33,#40404a);
+      box-shadow:0 0 8px rgba(255,255,255,.08);
+      color:#d7d7d7;
+    }
+    .action-button.danger{
+      background:linear-gradient(45deg,#2a1d1d,#4a2b2b);
+      box-shadow:0 0 8px rgba(220,53,69,.25);
+      color:#ffd7d7;
+    }
+    .action-button.info{
+      background:linear-gradient(45deg,#162026,#233844);
+      box-shadow:0 0 8px rgba(0,123,255,.25);
+      color:#d7ecff;
+    }
 
     .count{margin-top:6px;font-size:14px;color:#c7c7c7;}
     .button-container{margin-top:18px;display:flex;flex-direction:column;align-items:center;}
 
+    /* ✅ Bigger, easier-to-click color picker */
     .color-wrap{display:flex;gap:10px;align-items:center;width:100%;}
     .color-wrap input[type="color"]{
-      width:52px;height:44px;padding:0;background:transparent;border:1px solid rgba(255,255,255,.14);
-      border-radius:10px;cursor:pointer;
+      width:84px;              /* bigger */
+      height:60px;             /* bigger */
+      padding:0;
+      background:transparent;
+      border:2px solid rgba(255,255,255,.22);
+      border-radius:14px;
+      cursor:pointer;
+      box-sizing:border-box;
+    }
+    .color-wrap input[type="color"]:hover{
+      border-color: rgba(255,255,255,.45);
+    }
+    .color-wrap input[type="color"]:active{
+      transform: scale(0.98);
     }
 
     .status{font-size:12px;color:#c7c7c7;margin-top:6px;}
@@ -357,7 +393,10 @@
       setStatus("Unsaved changes.");
     }
     bgPicker.addEventListener("input", () => applyBgColor(bgPicker.value));
-    bgText.addEventListener("input", () => { const v=bgText.value.trim(); if (isValidHexColor(v)) applyBgColor(v); });
+    bgText.addEventListener("input", () => {
+      const v = bgText.value.trim();
+      if (isValidHexColor(v)) applyBgColor(v);
+    });
     function resetBg(){ applyBgColor("#000000"); }
 
     // Items
