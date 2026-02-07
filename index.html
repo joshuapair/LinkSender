@@ -112,24 +112,15 @@
     .count{margin-top:6px;font-size:14px;color:#c7c7c7;}
     .button-container{margin-top:18px;display:flex;flex-direction:column;align-items:center;}
 
-    /* ✅ Bigger, easier-to-click color picker */
+    /* Bigger color picker */
     .color-wrap{display:flex;gap:10px;align-items:center;width:100%;}
     .color-wrap input[type="color"]{
-      width:84px;              /* bigger */
-      height:60px;             /* bigger */
-      padding:0;
-      background:transparent;
+      width:84px;height:60px;padding:0;background:transparent;
       border:2px solid rgba(255,255,255,.22);
-      border-radius:14px;
-      cursor:pointer;
-      box-sizing:border-box;
+      border-radius:14px;cursor:pointer;box-sizing:border-box;
     }
-    .color-wrap input[type="color"]:hover{
-      border-color: rgba(255,255,255,.45);
-    }
-    .color-wrap input[type="color"]:active{
-      transform: scale(0.98);
-    }
+    .color-wrap input[type="color"]:hover{ border-color: rgba(255,255,255,.45); }
+    .color-wrap input[type="color"]:active{ transform: scale(0.98); }
 
     .status{font-size:12px;color:#c7c7c7;margin-top:6px;}
     .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0;}
@@ -148,7 +139,6 @@
       </div>
     </div>
 
-    <!-- Hidden input (triggered by clicking the logo box) -->
     <input type="file" id="logoUpload" accept="image/*" />
 
     <h2>Link Assistant</h2>
@@ -171,40 +161,23 @@
       <div class="divider"></div>
 
       <h3>Add Items (Start from none)</h3>
-      <div class="smallnote">Create either a Link button or a Text-only item. Select any items and send them together.</div>
+      <div class="smallnote">
+        One item = one button. Enter a Title + a Value. If Value starts with http(s), it sends as a link; otherwise it sends as text.
+      </div>
 
-      <!-- ADD LINK ITEM -->
+      <!-- ✅ SINGLE ADD ITEM (Title + Link OR Text) -->
       <div class="row">
         <div class="grow">
-          <div class="label">Link Button Label</div>
-          <input type="text" id="linkTitle" placeholder="Label" />
+          <div class="label">Button Title</div>
+          <input type="text" id="itemTitle" placeholder="Example: Payment Link" />
         </div>
         <div class="grow">
-          <div class="label">Link URL</div>
-          <input type="url" id="linkUrl" placeholder="https://..." />
+          <div class="label">Link or Text</div>
+          <input type="text" id="itemValue" placeholder="https://...  OR  paste text here" />
         </div>
         <div class="fixed" style="min-width:180px;width:180px;">
           <div class="label">&nbsp;</div>
-          <button class="action-button" type="button" onclick="addLinkItem()">Add Link</button>
-        </div>
-      </div>
-
-      <!-- ADD TEXT ITEM -->
-      <div class="row">
-        <div class="grow">
-          <div class="label">Text Item Title (optional)</div>
-          <input type="text" id="textTitle" placeholder="Text Item Title" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="grow">
-          <div class="label">Text Content</div>
-          <textarea id="textBody" rows="5" placeholder="Paste or type any text you want sent…"></textarea>
-        </div>
-        <div class="fixed" style="min-width:180px;width:180px;">
-          <div class="label">&nbsp;</div>
-          <button class="action-button" type="button" onclick="addTextItem()">Add Text</button>
+          <button class="action-button" type="button" onclick="addItem()">Add Item</button>
         </div>
       </div>
 
@@ -275,7 +248,7 @@
     logoBox.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") logoUpload.click();
     });
-    logoBox.setAttribute("tabindex","0"); // keyboard focus
+    logoBox.setAttribute("tabindex","0");
 
     function showLogo(dataUrl){
       const img = document.getElementById("logoImg");
@@ -323,11 +296,13 @@
 
         lines.push(`— ${title}`);
 
+        // Text-only item
         if ((!link || link.trim() === "") && customBody && customBody.trim().length > 0) {
           lines.push(customBody.trim(), "");
           return;
         }
 
+        // Link item (optionally with body)
         if (customBody && customBody.trim().length > 0) {
           lines.push(customBody.trim(), "");
           if (link && link.trim().length > 0) lines.push(`Link: ${link}`);
@@ -407,8 +382,9 @@
 
       btn.setAttribute("data-custom-id", item.id);
       btn.setAttribute("data-title", item.title || "");
-      btn.setAttribute("data-link", item.link || "");
-      if (item.body) btn.setAttribute("data-body", item.body);
+
+      if (item.type === "link") btn.setAttribute("data-link", item.link || "");
+      if (item.type === "text") btn.setAttribute("data-body", item.body || "");
 
       btn.addEventListener("click", () => toggleSelect(btn));
       document.getElementById("buttonContainer").appendChild(btn);
@@ -420,33 +396,25 @@
       draftCustomItems = saved.slice();
     }
 
-    function addLinkItem(){
-      const title = document.getElementById("linkTitle").value.trim();
-      const link = document.getElementById("linkUrl").value.trim();
-      if (!title) return alert("Please enter a label for the link.");
-      if (!link) return alert("Please enter a URL.");
-      if (!/^https?:\/\/.+/i.test(link)) return alert("Use a full link starting with http:// or https://");
+    // ✅ SINGLE addItem(): decides link vs text based on value
+    function addItem(){
+      const title = document.getElementById("itemTitle").value.trim();
+      const value = document.getElementById("itemValue").value.trim();
 
-      const item = { id: makeId(), type: "link", title, link };
+      if (!title) return alert("Please enter a button title.");
+      if (!value) return alert("Please enter a link or text.");
+
+      const isLink = /^https?:\/\/\S+/i.test(value);
+
+      const item = isLink
+        ? { id: makeId(), type: "link", title, link: value }
+        : { id: makeId(), type: "text", title, body: value };
+
       draftCustomItems.push(item);
       renderItem(item);
 
-      document.getElementById("linkTitle").value = "";
-      document.getElementById("linkUrl").value = "";
-      setStatus("Unsaved changes.");
-    }
-
-    function addTextItem(){
-      const title = document.getElementById("textTitle").value.trim();
-      const body = document.getElementById("textBody").value.trim();
-      if (!body) return alert("Please enter some text.");
-
-      const item = { id: makeId(), type: "text", title: title || "Custom Text", body };
-      draftCustomItems.push(item);
-      renderItem(item);
-
-      document.getElementById("textTitle").value = "";
-      document.getElementById("textBody").value = "";
+      document.getElementById("itemTitle").value = "";
+      document.getElementById("itemValue").value = "";
       setStatus("Unsaved changes.");
     }
 
