@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Link Sender App</title>
+  <link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#000000">
+
+<!-- iOS "Add to Home Screen" support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Link Assistant">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
   <style>
     body{font-family:Arial,sans-serif;text-align:center;background:#000;color:#adadae;margin:20px;}
     .wrap{max-width:920px;margin:0 auto;}
@@ -504,6 +512,12 @@
         : "Starting from none. Click the logo box to upload a logo, then click Save."
       );
     })();
+  // PWA Service Worker
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js");
+  });
+}
   </script>
 </body>
 </html>
